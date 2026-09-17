@@ -20,7 +20,6 @@ export function DailyForecast({ days, unitSymbol }: { days: DayPoint[]; unitSymb
           const width = ((day.max - day.min) / span) * 100;
           return (
             <li key={day.date} className="flex items-center gap-3 py-2.5">
-              <span className="w-14 text-sm font-semibold text-ink">{formatDay(day.date, i)}</span>
               <span className="w-14 text-sm font-semibold text-ink">
                 {formatDay(day.date, i, lang)}
               </span>
