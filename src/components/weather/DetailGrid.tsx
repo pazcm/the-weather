@@ -23,6 +23,7 @@ import {
   type DayPoint,
   type HourPoint,
 } from "@/lib/weather";
+import { useWeather } from "@/context/WeatherContext";
 
 function Card({
   icon,
@@ -65,10 +66,11 @@ type Props = {
 };
 
 export function DetailGrid({ current, today, air, hours, unitSymbol, speedUnit }: Props) {
+  const { lang, t } = useWeather();
   const uv = air.uvIndex ?? today.uvMax;
   const nextRain = hours.slice(0, 12).reduce((max, h) => Math.max(max, h.precipProbability), 0);
-  const sunriseClock = formatClock(today.sunrise);
-  const sunsetClock = formatClock(today.sunset);
+  const sunriseClock = formatClock(today.sunrise, lang);
+  const sunsetClock = formatClock(today.sunset, lang);
 
   const sunriseMin = Number(today.sunrise.slice(11, 13)) * 60 + Number(today.sunrise.slice(14, 16));
   const sunsetMin = Number(today.sunset.slice(11, 13)) * 60 + Number(today.sunset.slice(14, 16));
@@ -86,7 +88,7 @@ export function DetailGrid({ current, today, air, hours, unitSymbol, speedUnit }
         <div className="glass-card p-5">
           <h3 className="flex items-center gap-1.5 text-[0.68rem] font-semibold tracking-[0.14em] text-ink-muted uppercase">
             <Sunrise size={13} strokeWidth={2.2} />
-            Daylight
+            {t("detail.daylight")}
           </h3>
           <svg viewBox="0 0 100 54" className="mt-2 h-24 w-full" aria-hidden>
             <path
@@ -112,71 +114,75 @@ export function DetailGrid({ current, today, air, hours, unitSymbol, speedUnit }
         </div>
       </div>
 
-      <Card icon={<Sun size={13} strokeWidth={2.2} />} title="UV index">
+      <Card icon={<Sun size={13} strokeWidth={2.2} />} title={t("detail.uv")}>
         <p className="tnum text-3xl font-light">{Math.round(uv)}</p>
-        <p className="text-sm text-ink-muted">{uvLabel(uv)}</p>
+        <p className="text-sm text-ink-muted">{uvLabel(uv, lang)}</p>
         <Meter value={(uv / 11) * 100} />
       </Card>
 
-      <Card icon={<Leaf size={13} strokeWidth={2.2} />} title="Air quality">
+      <Card icon={<Leaf size={13} strokeWidth={2.2} />} title={t("detail.air")}>
         <p className="tnum text-3xl font-light">{air.aqi != null ? Math.round(air.aqi) : "—"}</p>
-        <p className="text-sm text-ink-muted">{air.aqi != null ? aqiLabel(air.aqi) : "Unavailable"}</p>
+        <p className="text-sm text-ink-muted">
+          {air.aqi != null ? aqiLabel(air.aqi, lang) : t("detail.unavailable")}
+        </p>
         {air.aqi != null ? <Meter value={(air.aqi / 300) * 100} /> : null}
       </Card>
 
-      <Card icon={<Wind size={13} strokeWidth={2.2} />} title="Wind">
+      <Card icon={<Wind size={13} strokeWidth={2.2} />} title={t("detail.wind")}>
         <p className="tnum text-3xl font-light">
           {Math.round(current.windSpeed)}
           <span className="ml-1 text-base text-ink-muted">{speedUnit}</span>
         </p>
         <p className="flex items-center gap-1 text-sm text-ink-muted">
           <Compass size={13} strokeWidth={2} />
-          {windDirectionLabel(current.windDirection)} · gusts {Math.round(current.windGusts)}{" "}
-          {speedUnit}
+          {windDirectionLabel(current.windDirection, lang)} · {t("detail.gusts")}{" "}
+          {Math.round(current.windGusts)} {speedUnit}
         </p>
       </Card>
 
-      <Card icon={<Droplets size={13} strokeWidth={2.2} />} title="Humidity">
+      <Card icon={<Droplets size={13} strokeWidth={2.2} />} title={t("detail.humidity")}>
         <p className="tnum text-3xl font-light">{Math.round(current.humidity)}%</p>
         <p className="text-sm text-ink-muted">
           {current.dewPoint != null
-            ? `Dew point ${Math.round(current.dewPoint)}${unitSymbol}`
-            : "Relative humidity"}
+            ? t("detail.dewPoint", { value: `${Math.round(current.dewPoint)}${unitSymbol}` })
+            : t("detail.relativeHumidity")}
         </p>
       </Card>
 
-      <Card icon={<Gauge size={13} strokeWidth={2.2} />} title="Pressure">
+      <Card icon={<Gauge size={13} strokeWidth={2.2} />} title={t("detail.pressure")}>
         <p className="tnum text-3xl font-light">
           {Math.round(current.pressure)}
           <span className="ml-1 text-base text-ink-muted">hPa</span>
         </p>
-        <p className="text-sm text-ink-muted">{pressureLabel(current.pressure)}</p>
+        <p className="text-sm text-ink-muted">{pressureLabel(current.pressure, lang)}</p>
       </Card>
 
-      <Card icon={<Umbrella size={13} strokeWidth={2.2} />} title="Precipitation">
+      <Card icon={<Umbrella size={13} strokeWidth={2.2} />} title={t("detail.precipitation")}>
         <p className="tnum text-3xl font-light">{nextRain}%</p>
-        <p className="text-sm text-ink-muted">Chance in the next 12 hours</p>
+        <p className="text-sm text-ink-muted">{t("detail.precipitationSub")}</p>
       </Card>
 
-      <Card icon={<Eye size={13} strokeWidth={2.2} />} title="Visibility">
+      <Card icon={<Eye size={13} strokeWidth={2.2} />} title={t("detail.visibility")}>
         <p className="tnum text-3xl font-light">
           {current.visibility != null ? Math.round(current.visibility / 1000) : "—"}
           <span className="ml-1 text-base text-ink-muted">km</span>
         </p>
-        <p className="text-sm text-ink-muted">Cloud cover {Math.round(current.cloudCover)}%</p>
+        <p className="text-sm text-ink-muted">
+          {t("detail.cloudCover", { value: Math.round(current.cloudCover) })}
+        </p>
       </Card>
 
-      <Card icon={<Thermometer size={13} strokeWidth={2.2} />} title="Feels like">
+      <Card icon={<Thermometer size={13} strokeWidth={2.2} />} title={t("detail.feelsLike")}>
         <p className="tnum text-3xl font-light">
           {Math.round(current.apparent)}
           {unitSymbol}
         </p>
         <p className="text-sm text-ink-muted">
           {current.apparent > current.temperature
-            ? "Humidity makes it feel warmer"
+            ? t("detail.feelsWarmer")
             : current.apparent < current.temperature
-              ? "Wind makes it feel cooler"
-              : "Matches the actual temperature"}
+              ? t("detail.feelsCooler")
+              : t("detail.feelsSame")}
         </p>
       </Card>
     </section>
