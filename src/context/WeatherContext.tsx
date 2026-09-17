@@ -30,11 +30,11 @@ type WeatherContextValue = {
 
 const FALLBACK_PLACE: Place = {
   id: "2643743",
-  name: "London",
-  admin: "England",
-  country: "United Kingdom",
-  latitude: 51.5074,
-  longitude: -0.1278,
+  name: "As Pontes de García Rodríguez",
+  admin: "Galicia",
+  country: "Spain",
+  latitude: 43.44917,
+  longitude: -7.85316,
 };
 
 const WeatherContext = createContext<WeatherContextValue | null>(null);
