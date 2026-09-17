@@ -5,10 +5,19 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { fetchWeather, reverseGeocode, type Place, type WeatherBundle } from "@/lib/weather";
+import {
+  createT,
+  detectLang,
+  isLang,
+  LANG_STORAGE_KEY,
+  type Lang,
+  type TFunction,
+} from "@/lib/i18n";
 
 type Unit = "celsius" | "fahrenheit";
 type GeoState = "idle" | "locating" | "granted" | "denied";
@@ -22,6 +31,9 @@ type WeatherContextValue = {
   unit: Unit;
   toggleUnit: () => void;
   geoState: GeoState;
+  lang: Lang;
+  setLang: (lang: Lang) => void;
+  t: TFunction;
   requestLocation: () => void;
   weather: WeatherBundle | undefined;
   isLoading: boolean;
@@ -30,11 +42,11 @@ type WeatherContextValue = {
 
 const FALLBACK_PLACE: Place = {
   id: "2643743",
-  name: "London",
-  admin: "England",
-  country: "United Kingdom",
-  latitude: 51.5074,
-  longitude: -0.1278,
+  name: "As Pontes de García Rodríguez",
+  admin: "Galicia",
+  country: "Spain",
+  latitude: 43.44917,
+  longitude: -7.85316,
 };
 
 const WeatherContext = createContext<WeatherContextValue | null>(null);
@@ -46,18 +58,26 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
   const [place, setPlaceState] = useState<Place>(FALLBACK_PLACE);
   const [saved, setSaved] = useState<Place[]>([]);
   const [unit, setUnit] = useState<Unit>("celsius");
+  const [lang, setLangState] = useState<Lang>("es");
   const [geoState, setGeoState] = useState<GeoState>("idle");
-
+  
   useEffect(() => {
     try {
       const rawSaved = localStorage.getItem(SAVED_KEY);
       if (rawSaved) setSaved(JSON.parse(rawSaved) as Place[]);
       const rawUnit = localStorage.getItem(UNIT_KEY);
       if (rawUnit === "fahrenheit" || rawUnit === "celsius") setUnit(rawUnit);
+      const rawLang = localStorage.getItem(LANG_STORAGE_KEY);
+      setLangState(isLang(rawLang) ? rawLang : detectLang());
     } catch {
       /* ignore corrupt storage */
     }
   }, []);
+
+  const langRef = useRef<Lang>(lang);
+  useEffect(() => {
+    langRef.current = lang;
+  }, [lang]);
 
   const requestLocation = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -67,7 +87,11 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
     setGeoState("locating");
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const found = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+        const found = await reverseGeocode(
+          pos.coords.latitude,
+          pos.coords.longitude,
+          langRef.current,
+        );
         setPlaceState(found);
         setGeoState("granted");
       },
@@ -109,6 +133,17 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const setLang = useCallback((next: Lang) => {
+    setLangState(next);
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, next);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const t = useMemo(() => createT(lang), [lang]);
+
   const query = useQuery({
     queryKey: ["weather", place.latitude, place.longitude, unit],
     queryFn: () => fetchWeather(place.latitude, place.longitude, unit),
@@ -125,6 +160,9 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
       isSaved,
       unit,
       toggleUnit,
+      lang,
+      setLang,
+      t,
       geoState,
       requestLocation,
       weather: query.data,
@@ -139,6 +177,9 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
       isSaved,
       unit,
       toggleUnit,
+      lang,
+      setLang,
+      t,
       geoState,
       requestLocation,
       query.data,

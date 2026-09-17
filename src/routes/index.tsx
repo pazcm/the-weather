@@ -8,7 +8,7 @@ import { HourlyStrip } from "@/components/weather/HourlyStrip";
 import { DailyForecast } from "@/components/weather/DailyForecast";
 import { DetailGrid } from "@/components/weather/DetailGrid";
 
-const title = "The Weather — Hyper-local forecasts, beautifully clear";
+const title = "El tiempo app de Marta — Hyper-local forecasts, beautifully clear";
 const description =
   "Live hyper-local weather: current conditions, hourly and 10-day forecasts, air quality, UV, wind, humidity, pressure and daylight — in a glass interface that shifts with the sky.";
 
@@ -35,7 +35,7 @@ function WeatherPage() {
 }
 
 function WeatherScreen() {
-  const { place, weather, isLoading, error, unit } = useWeather();
+  const { place, weather, isLoading, error, unit, lang, t } = useWeather();
   const unitSymbol = "°";
   const speedUnit = unit === "celsius" ? "km/h" : "mph";
 
@@ -44,25 +44,24 @@ function WeatherScreen() {
 
   return (
     <DynamicSky code={code} isDay={isDay}>
-      <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-16">
-        <h1 className="sr-only">The Weather — hyper-local forecast for {place.name}</h1>
+      <main lang={lang} className="mx-auto w-full max-w-2xl px-4 pt-6 pb-16">
+        <h1 className="sr-only">{t("app.title", { place: place.name })}</h1>
         <LocationBar />
 
         {isLoading && !weather ? (
           <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-ink-muted">
             <Loader2 size={28} strokeWidth={1.8} className="animate-spin" />
-            <p className="text-sm">Reading the sky over {place.name}…</p>
+            <p className="text-sm">{t("state.loading", { place: place.name })}</p>
           </div>
         ) : null}
 
         {error && !weather ? (
           <div className="glass-card mt-10 flex flex-col items-center gap-2 p-8 text-center">
             <AlertTriangle size={24} strokeWidth={1.8} />
-            <p className="text-sm text-ink-muted">
-              Couldn&apos;t load the forecast right now. Check your connection and try again.
-            </p>
+            <p className="text-sm text-ink-muted">{t("state.error")}</p>
           </div>
         ) : null}
+
 
         {weather && weather.daily[0] ? (
           <div className="space-y-4">
@@ -82,9 +81,7 @@ function WeatherScreen() {
               unitSymbol={unitSymbol}
               speedUnit={speedUnit}
             />
-            <p className="pt-2 text-center text-xs text-ink-muted">
-              Data from Open-Meteo · updates every 10 minutes
-            </p>
+            <p className="pt-2 text-center text-xs text-ink-muted">{t("footer.source")}</p>
           </div>
         ) : null}
       </main>

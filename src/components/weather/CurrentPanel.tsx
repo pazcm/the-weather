@@ -1,5 +1,6 @@
 import { MapPin } from "lucide-react";
 import { describeCode, type CurrentWeather, type DayPoint, type Place } from "@/lib/weather";
+import { useWeather } from "@/context/WeatherContext";
 import { WeatherIcon } from "./WeatherIcon";
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
 };
 
 export function CurrentPanel({ place, current, today, unitSymbol }: Props) {
+  const { lang, t } = useWeather();
+
   return (
     <section className="rise-in flex flex-col items-center pt-10 pb-8 text-center">
       <p className="flex items-center gap-1.5 text-sm font-medium tracking-wide text-ink-muted">
@@ -25,12 +28,12 @@ export function CurrentPanel({ place, current, today, unitSymbol }: Props) {
 
       <div className="mt-1 flex items-center gap-2 text-lg font-medium text-ink">
         <WeatherIcon code={current.code} isDay={current.isDay} size={22} />
-        {describeCode(current.code)}
+        {describeCode(current.code, lang)}
       </div>
 
       <p className="tnum mt-1 text-sm text-ink-muted">
-        H:{Math.round(today.max)}{unitSymbol} · L:{Math.round(today.min)}{unitSymbol} · Feels like{" "}
-        {Math.round(current.apparent)}{unitSymbol}
+        H:{Math.round(today.max)}{unitSymbol} · L:{Math.round(today.min)}{unitSymbol} ·{" "}
+        {t("current.feelsLike")} {Math.round(current.apparent)}{unitSymbol}
       </p>
     </section>
   );

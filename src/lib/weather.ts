@@ -1,3 +1,5 @@
+import { createT, dictionaries, geoLang, type Lang, type TKey } from "./i18n";
+
 export type Place = {
   id: string;
   name: string;
@@ -81,7 +83,7 @@ async function getJSON<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function searchPlaces(query: string): Promise<Place[]> {
+export async function searchPlaces(query: string, lang: Lang = "en"): Promise<Place[]> {
   const q = query.trim();
   if (q.length < 2) return [];
   const data = await getJSON<{
@@ -93,7 +95,7 @@ export async function searchPlaces(query: string): Promise<Place[]> {
       latitude: number;
       longitude: number;
     }>;
-  }>(`${GEOCODE_URL}?name=${encodeURIComponent(q)}&count=8&language=en&format=json`);
+  }>(`${GEOCODE_URL}?name=${encodeURIComponent(q)}&count=8&language=${geoLang(lang)}&format=json`);
 
   return (data.results ?? []).map((r) => ({
     id: String(r.id),
@@ -105,17 +107,23 @@ export async function searchPlaces(query: string): Promise<Place[]> {
   }));
 }
 
-export async function reverseGeocode(latitude: number, longitude: number): Promise<Place> {
+export async function reverseGeocode(
+  latitude: number,
+  longitude: number,
+  lang: Lang = "en",
+): Promise<Place> {
   try {
     const data = await getJSON<{
       city?: string;
       locality?: string;
       principalSubdivision?: string;
       countryName?: string;
-    }>(`${REVERSE_URL}?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+    }>(
+      `${REVERSE_URL}?latitude=${latitude}&longitude=${longitude}&localityLanguage=${geoLang(lang)}`,
+    );
     return {
       id: `${latitude.toFixed(3)},${longitude.toFixed(3)}`,
-      name: data.city || data.locality || "My Location",
+      name: data.city || data.locality || createT(lang)("place.myLocation"),
       admin: data.principalSubdivision,
       country: data.countryName,
       latitude,
@@ -124,7 +132,7 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
   } catch {
     return {
       id: `${latitude.toFixed(3)},${longitude.toFixed(3)}`,
-      name: "My Location",
+      name: createT(lang)("place.myLocation"),
       latitude,
       longitude,
     };
@@ -239,7 +247,6 @@ export async function fetchWeather(
     dewPoint: h.dew_point_2m[startIdx] ?? null,
   };
 
-
   return {
     current,
     hourly,
@@ -269,90 +276,47 @@ export function conditionFromCode(code: number): WeatherCondition {
   return "cloudy";
 }
 
-export function describeCode(code: number): string {
-  const map: Record<number, string> = {
-    0: "Clear",
-    1: "Mostly Clear",
-    2: "Partly Cloudy",
-    3: "Overcast",
-    45: "Fog",
-    48: "Freezing Fog",
-    51: "Light Drizzle",
-    53: "Drizzle",
-    55: "Heavy Drizzle",
-    56: "Freezing Drizzle",
-    57: "Freezing Drizzle",
-    61: "Light Rain",
-    63: "Rain",
-    65: "Heavy Rain",
-    66: "Freezing Rain",
-    67: "Freezing Rain",
-    71: "Light Snow",
-    73: "Snow",
-    75: "Heavy Snow",
-    77: "Snow Grains",
-    80: "Light Showers",
-    81: "Showers",
-    82: "Heavy Showers",
-    85: "Snow Showers",
-    86: "Snow Showers",
-    95: "Thunderstorm",
-    96: "Thunderstorm & Hail",
-    99: "Severe Thunderstorm",
-  };
-  return map[code] ?? "Unsettled";
+export function describeCode(code: number, lang: Lang = "en"): string {
+  const t = createT(lang);
+  const key = `cond.${code}` as TKey;
+  const known = dictionaries.en[key];
+  return known ? t(key) : t("cond.unknown");
 }
 
 export function skyKey(code: number, isDay: boolean): string {
   return `${conditionFromCode(code)}-${isDay ? "day" : "night"}`;
 }
 
-export function uvLabel(uv: number): string {
-  if (uv < 3) return "Low";
-  if (uv < 6) return "Moderate";
-  if (uv < 8) return "High";
-  if (uv < 11) return "Very High";
-  return "Extreme";
+export function uvLabel(uv: number, lang: Lang = "en"): string {
+  const t = createT(lang);
+  if (uv < 3) return t("uv.low");
+  if (uv < 6) return t("uv.moderate");
+  if (uv < 8) return t("uv.high");
+  if (uv < 11) return t("uv.veryHigh");
+  return t("uv.extreme");
 }
 
-export function aqiLabel(aqi: number): string {
-  if (aqi <= 50) return "Good";
-  if (aqi <= 100) return "Moderate";
-  if (aqi <= 150) return "Unhealthy for Sensitive";
-  if (aqi <= 200) return "Unhealthy";
-  if (aqi <= 300) return "Very Unhealthy";
-  return "Hazardous";
+export function aqiLabel(aqi: number, lang: Lang = "en"): string {
+  const t = createT(lang);
+  if (aqi <= 50) return t("aqi.good");
+  if (aqi <= 100) return t("aqi.moderate");
+  if (aqi <= 150) return t("aqi.sensitive");
+  if (aqi <= 200) return t("aqi.unhealthy");
+  if (aqi <= 300) return t("aqi.veryUnhealthy");
+  return t("aqi.hazardous");
 }
 
-export function windDirectionLabel(deg: number): string {
-  const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-  return dirs[Math.round(deg / 45) % 8] ?? "N";
+export function windDirectionLabel(deg: number, lang: Lang = "en"): string {
+  const t = createT(lang);
+  const dirs: TKey[] = ["dir.N", "dir.NE", "dir.E", "dir.SE", "dir.S", "dir.SW", "dir.W", "dir.NW"];
+  return t(dirs[Math.round(deg / 45) % 8] ?? "dir.N");
 }
 
-export function pressureLabel(hPa: number): string {
-  if (hPa < 1000) return "Low";
-  if (hPa > 1020) return "High";
-  return "Steady";
+export function pressureLabel(hPa: number, lang: Lang = "en"): string {
+  const t = createT(lang);
+  if (hPa < 1000) return t("pressure.low");
+  if (hPa > 1020) return t("pressure.high");
+  return t("pressure.steady");
 }
 
-export function formatHour(iso: string, index: number): string {
-  if (index === 0) return "Now";
-  const hour = Number(iso.slice(11, 13));
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const h12 = hour % 12 === 0 ? 12 : hour % 12;
-  return `${h12}${suffix}`;
-}
-
-export function formatDay(iso: string, index: number): string {
-  if (index === 0) return "Today";
-  const d = new Date(`${iso}T12:00:00`);
-  return d.toLocaleDateString("en-US", { weekday: "short" });
-}
-
-export function formatClock(iso: string): string {
-  const hour = Number(iso.slice(11, 13));
-  const minute = iso.slice(14, 16);
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const h12 = hour % 12 === 0 ? 12 : hour % 12;
-  return `${h12}:${minute} ${suffix}`;
-}
+export { formatHour, formatDay, formatClock } from "./i18n";
