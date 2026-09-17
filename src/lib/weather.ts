@@ -1,3 +1,5 @@
+import { createT, dictionaries, geoLang, type Lang, type TKey } from "./i18n";
+
 export type Place = {
   id: string;
   name: string;
@@ -81,7 +83,7 @@ async function getJSON<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function searchPlaces(query: string): Promise<Place[]> {
+export async function searchPlaces(query: string, lang: Lang = "en"): Promise<Place[]> {
   const q = query.trim();
   if (q.length < 2) return [];
   const data = await getJSON<{
@@ -93,7 +95,7 @@ export async function searchPlaces(query: string): Promise<Place[]> {
       latitude: number;
       longitude: number;
     }>;
-  }>(`${GEOCODE_URL}?name=${encodeURIComponent(q)}&count=8&language=en&format=json`);
+  }>(`${GEOCODE_URL}?name=${encodeURIComponent(q)}&count=8&language=${geoLang(lang)}&format=json`);
 
   return (data.results ?? []).map((r) => ({
     id: String(r.id),
@@ -105,17 +107,23 @@ export async function searchPlaces(query: string): Promise<Place[]> {
   }));
 }
 
-export async function reverseGeocode(latitude: number, longitude: number): Promise<Place> {
+export async function reverseGeocode(
+  latitude: number,
+  longitude: number,
+  lang: Lang = "en",
+): Promise<Place> {
   try {
     const data = await getJSON<{
       city?: string;
       locality?: string;
       principalSubdivision?: string;
       countryName?: string;
-    }>(`${REVERSE_URL}?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+    }>(
+      `${REVERSE_URL}?latitude=${latitude}&longitude=${longitude}&localityLanguage=${geoLang(lang)}`,
+    );
     return {
       id: `${latitude.toFixed(3)},${longitude.toFixed(3)}`,
-      name: data.city || data.locality || "My Location",
+      name: data.city || data.locality || createT(lang)("place.myLocation"),
       admin: data.principalSubdivision,
       country: data.countryName,
       latitude,
@@ -124,7 +132,7 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
   } catch {
     return {
       id: `${latitude.toFixed(3)},${longitude.toFixed(3)}`,
-      name: "My Location",
+      name: createT(lang)("place.myLocation"),
       latitude,
       longitude,
     };

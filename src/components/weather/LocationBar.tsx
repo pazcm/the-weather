@@ -2,10 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { Crosshair, Loader2, MapPin, Search, Star, X } from "lucide-react";
 import { useWeather } from "@/context/WeatherContext";
 import { searchPlaces, type Place } from "@/lib/weather";
+import { LanguageChip } from "./LanguageChip";
 
 export function LocationBar() {
-  const { place, setPlace, saved, toggleSaved, isSaved, unit, toggleUnit, geoState, requestLocation } =
-    useWeather();
+  const { 
+    place, 
+    setPlace, 
+    saved, 
+    toggleSaved, 
+    isSaved, 
+    unit, 
+    toggleUnit,
+    lang,
+    t, 
+    geoState, 
+    requestLocation 
+  } = useWeather();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Place[]>([]);
@@ -26,7 +38,7 @@ export function LocationBar() {
     setSearching(true);
     const timer = setTimeout(async () => {
       try {
-        const found = await searchPlaces(query);
+        const found = await searchPlaces(query, lang);
         if (active) setResults(found);
       } finally {
         if (active) setSearching(false);
@@ -36,7 +48,7 @@ export function LocationBar() {
       active = false;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, lang]);
 
   const choose = (next: Place) => {
     setPlace(next);
@@ -54,7 +66,7 @@ export function LocationBar() {
           className="glass-chip flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-ink transition hover:bg-white/20"
         >
           <Search size={15} strokeWidth={2} />
-          Search city
+           {t("bar.search")}
         </button>
 
         <div className="flex items-center gap-2">
@@ -62,7 +74,7 @@ export function LocationBar() {
             type="button"
             onClick={() => toggleSaved(place)}
             aria-pressed={isSaved(place)}
-            aria-label={isSaved(place) ? "Remove from saved places" : "Save this place"}
+            aria-label={isSaved(place) ? t("bar.unsave") : t("bar.save")}
             className="glass-chip grid h-9 w-9 place-items-center rounded-full text-ink transition hover:bg-white/20"
           >
             <Star size={16} strokeWidth={2} fill={isSaved(place) ? "currentColor" : "none"} />
@@ -70,7 +82,7 @@ export function LocationBar() {
           <button
             type="button"
             onClick={requestLocation}
-            aria-label="Use my current location"
+            aria-label={t("bar.locate")}
             className="glass-chip grid h-9 w-9 place-items-center rounded-full text-ink transition hover:bg-white/20"
           >
             {geoState === "locating" ? (
@@ -86,6 +98,7 @@ export function LocationBar() {
           >
             °{unit === "celsius" ? "C" : "F"}
           </button>
+          <LanguageChip />
         </div>
       </div>
 
@@ -109,7 +122,7 @@ export function LocationBar() {
           <div
             className="glass-card w-full max-w-lg overflow-hidden rise-in"
             role="dialog"
-            aria-label="Search for a city"
+            aria-label={t("search.dialog")}
           >
             <div className="flex items-center gap-3 border-b border-white/15 px-5 py-4">
               <Search size={18} strokeWidth={2} className="text-ink-muted" />
@@ -117,13 +130,13 @@ export function LocationBar() {
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="City or town"
+                placeholder={t("search.placeholder")}
                 className="w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-muted"
               />
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Close search"
+                aria-label={t("search.close")}
                 className="text-ink-muted transition hover:text-ink"
               >
                 <X size={18} strokeWidth={2} />
@@ -132,10 +145,10 @@ export function LocationBar() {
 
             <ul className="max-h-80 overflow-y-auto py-2">
               {searching ? (
-                <li className="px-5 py-4 text-sm text-ink-muted">Searching…</li>
+                <li className="px-5 py-4 text-sm text-ink-muted">{t("search.searching")}</li>
               ) : null}
               {!searching && query.trim().length >= 2 && results.length === 0 ? (
-                <li className="px-5 py-4 text-sm text-ink-muted">No places found.</li>
+                <li className="px-5 py-4 text-sm text-ink-muted">{t("search.empty")}</li>
               ) : null}
               {results.map((r) => (
                 <li key={r.id}>
